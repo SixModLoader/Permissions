@@ -4,7 +4,7 @@ namespace Permissions
 {
     public class PermissionHolder
     {
-        public List<string> Permissions { get; } = new List<string>();
+        public List<string> Permissions { get; set; } = new List<string>();
 
         public bool HasPermission(string permission)
         {

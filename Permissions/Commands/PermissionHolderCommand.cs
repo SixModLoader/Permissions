@@ -1,52 +1,83 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CommandSystem;
+using HarmonyLib;
 
 namespace Permissions.Commands
 {
-    public class PermissionHolderCommand<T> : ParentCommand
+    public class PermissionHolderCommand<T> : CommandHandler, ICommand where T : PermissionHolder
     {
-        public PermissionHolderCommand(Dictionary<string, T> dictionary)
+        public PermissionHolderCommand(Func<Dictionary<string, T>> dictionary)
         {
-            Dictionary = dictionary;
+            _dictionary = dictionary;
             LoadGeneratedCommands();
         }
 
         public sealed override void LoadGeneratedCommands()
         {
-            RegisterCommand(new AddCommand(this));
+            RegisterCommand(new CreateCommand(this));
+            RegisterCommand(new PermissionsCommand<T>(this));
         }
 
-        protected override bool ExecuteParent(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            response = "Please specify a valid subcommand!";
+            response = $"Please specify a valid subcommand! ({Dictionary.Keys.Join()}) + ({Commands.Keys.Join()})";
+
+            if (arguments.Array != null && arguments.Count >= 2 && this.TryGetCommand(arguments.At(1), out var command))
+            {
+                var args = arguments.ToList();
+                args.RemoveAt(1);
+
+                if (args.Count > 1)
+                {
+                    var id = args[0];
+                    args.Remove(id);
+                    args.Insert(1, id);
+                }
+
+                command.Execute(new ArraySegment<string>(args.ToArray()), sender, out response);
+            }
+
             return false;
         }
 
-        public override string Command => typeof(T).Name.ToLower() + "s";
-        public override string[] Aliases => new string[0];
-        public override string Description => "Manage" + Command;
-        public Dictionary<string, T> Dictionary { get; }
+        public string Command => typeof(T).Name.ToLower();
+        public string[] Aliases => new string[0];
+        public string Description => "Manage" + Command;
 
-        public class AddCommand : ICommand
+        private readonly Func<Dictionary<string, T>> _dictionary;
+        public Dictionary<string, T> Dictionary => _dictionary.Invoke();
+
+        public class CreateCommand : ICommand
         {
-            public AddCommand(PermissionHolderCommand<T> parent)
+            public CreateCommand(PermissionHolderCommand<T> parent)
             {
                 Parent = parent;
             }
 
             public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
             {
-                Parent.Dictionary[arguments.At(0)] = Activator.CreateInstance<T>();
-                PermissionsMod.Instance.Storage.Save();
+                var id = arguments.At(0);
 
-                response = "Done :)";
+                if (Parent.Dictionary.ContainsKey(id))
+                {
+                    response = id + " already exists!";
+                }
+                else
+                {
+                    Parent.Dictionary[id] = Activator.CreateInstance<T>();
+                    PermissionsMod.Instance.Storage.Save();
+
+                    response = "Created " + id;
+                }
+
                 return true;
             }
 
-            public string Command => "add";
+            public string Command => "create";
             public string[] Aliases => new string[0];
-            public string Description => "Adds " + typeof(T).Name;
+            public string Description => "Creates " + typeof(T).Name;
             public PermissionHolderCommand<T> Parent { get; }
         }
     }

@@ -7,16 +7,16 @@
         <Authors>js6pak</Authors>
     </PropertyGroup>
 
-    <Import Project="..\..\SixModLoader\SCPSL.props" />
+    <Import Project="..\..\SixModLoader\SCPSL.props"/>
     <ItemGroup>
-        <PackageReference Include="SixModLoader.Api" Version="0.1.0-pre.*" />
-        <PackageReference Include="SixModLoader" Version="0.1.0-pre.*" />
+        <PackageReference Include="SixModLoader.Api" Version="[0.1.0, 1.0.0)"/>
+        <PackageReference Include="SixModLoader" Version="[0.1.0, 1.0.0)"/>
     </ItemGroup>
 
     <Target Name="Copy" AfterTargets="Build">
         <ItemGroup>
-            <OutputFiles Include="$(OutputPath)$(AssemblyName).dll" />
+            <OutputFiles Include="$(OutputPath)$(AssemblyName).dll"/>
         </ItemGroup>
-        <Copy SourceFiles="@(OutputFiles)" DestinationFolder="$(SCPSL_SERVER)\SixModLoader\mods\" Condition="'$(Configuration)' == 'Debug'" />
+        <Copy SourceFiles="@(OutputFiles)" DestinationFolder="$(SCPSL_SERVER)\SixModLoader\mods\" Condition="'$(Configuration)' == 'Debug'"/>
     </Target>
 </Project>
